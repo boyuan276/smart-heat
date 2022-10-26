@@ -5,15 +5,18 @@ import concurrent.futures
 from geopy.geocoders import Nominatim
 import geopy.distance
 import datetime
+
 sys.path.append(f'{pathlib.Path(os.path.abspath("")).parents[0]}')
 
-DATA_DIR = f'{pathlib.Path(os.path.abspath("")).parents[1]}/data'
+# DATA_DIR = f'{pathlib.Path(os.path.abspath("")).parents[1]}/data'
+DATA_DIR = '../data/'
 
 # User Packages
 try:
     import process
 except Exception as e:
     from . import process
+
 
 def get_counties():
     """
@@ -50,7 +53,7 @@ def get_counties():
                             manual_county = 'Richmond'
                         elif address['city'].lower() == 'bronx':
                             manual_county = 'Bronx'
-                        elif address['city'].lower() in ['sunnyside','elmhurst', 'ozone park']:
+                        elif address['city'].lower() in ['sunnyside', 'elmhurst', 'ozone park']:
                             manual_county = 'Queens'
                         else:
                             # manual_county = input(f'\nEnter County for {address}: ')
@@ -60,6 +63,7 @@ def get_counties():
         if n % 100 == 0:
             print(f'{n}/{len(meta_data.index)}')
     return meta_data
+
 
 def get_solar_dfs(location, index):
     """
@@ -91,6 +95,7 @@ def get_solar_dfs(location, index):
     solar_dfs_loc = [pd.to_numeric(w) for w in solar_dfs_loc]
     return solar_dfs_loc, solar_dfs
 
+
 def get_wind_dfs(location, index):
     """
     Gets data from wind speed files contained in  <DATA_DIR>/Weather/<location> to be used for comparing heating demand
@@ -102,9 +107,11 @@ def get_wind_dfs(location, index):
     wind_df = pd.read_csv(f'{DATA_DIR}/Weather/{location}/wind_speed.csv', index_col=0, parse_dates=True)
     wind_df = wind_df.loc[wind_df.index.isin(index), :]
 
-    wind_df_loc = [wind_df.loc[:, ['latitude', 'longitude']].iloc[i] for i in range(len(wind_df.loc[:, ['latitude', 'longitude']].drop_duplicates()))]
+    wind_df_loc = [wind_df.loc[:, ['latitude', 'longitude']].iloc[i] for i in
+                   range(len(wind_df.loc[:, ['latitude', 'longitude']].drop_duplicates()))]
 
     return wind_df_loc, wind_df
+
 
 def create_wind_data(path_to_grib, location):
     """
@@ -136,13 +143,12 @@ def import_grouped_data(location: str,
     :return:
     """
 
-
     DIR = f'{DATA_DIR}/{location}'
 
     # Get metadata from data directory
     meta_data = pd.read_csv(f'{DATA_DIR}/meta_data.csv', header=0,
                             usecols=['City', 'ProvinceState',
-                                    'Identifier', 'Floor Area [ft2]', 'Style', 'installedHeatStages',
+                                     'Identifier', 'Floor Area [ft2]', 'Style', 'installedHeatStages',
                                      'Number of Floors', 'Age of Home [years]', 'Number of Occupants',
                                      'Has Electric', 'Has a Heat Pump', 'Auxilliary Heat Fuel Type'])
     max_files = min(max_files, len(os.listdir(DIR)))
@@ -169,10 +175,9 @@ def import_grouped_data(location: str,
     solar_dfs_loc, solar_dfs = get_solar_dfs(location, grouped_index)
     wind_df_loc, wind_df = get_wind_dfs(location, grouped_index)
 
-
     def import_data(i, file, reduce_size):
         """
-        Helper function for parallelization. Imports files and adds them to a list of dataframes
+        Helper function for parallelization. Import files and adds them to a list of dataframes
         :param i: file number
         :param file: filename
         :param reduce_size: Whether to conserve space by limiting data input
@@ -187,7 +192,7 @@ def import_grouped_data(location: str,
             print('.', end="")
 
         # Get Metadata
-        key = file[-44:-4] # parses out the identifier from filename
+        key = file[-44:-4]  # parses out the identifier from filename
         building_meta_data = meta_data.loc[meta_data['Identifier'] == key]
 
         # Read In csv
@@ -198,12 +203,13 @@ def import_grouped_data(location: str,
                                                                   'compHeat1', 'compHeat2', 'fan',
                                                                   'Thermostat_Temperature', 'T_out', 'RH_out',
                                                                   ],
-                         dtype={'HvacMode': 'category', 'Event': 'category', 'Schedule': 'category', 'T_ctr': np.float32,
-                                  'T_stp_cool': np.float32, 'T_stp_heat': np.float32, 'Humidity': np.float32,
-                                  'auxHeat1': np.float32, 'auxHeat2': np.float32, 'auxHeat3': np.float32,
-                                  'compHeat1': np.float32, 'compHeat2': np.float32, 'fan': np.float32,
-                                  'Thermostat_Temperature': np.float32, 'T_out': np.float32, 'RH_out': np.float32,
-        }
+                         dtype={'HvacMode': 'category', 'Event': 'category', 'Schedule': 'category',
+                                'T_ctr': np.float32,
+                                'T_stp_cool': np.float32, 'T_stp_heat': np.float32, 'Humidity': np.float32,
+                                'auxHeat1': np.float32, 'auxHeat2': np.float32, 'auxHeat3': np.float32,
+                                'compHeat1': np.float32, 'compHeat2': np.float32, 'fan': np.float32,
+                                'Thermostat_Temperature': np.float32, 'T_out': np.float32, 'RH_out': np.float32,
+                                }
                          ).set_index('DateTime')
         # Get only <season> days
         df = df.loc[df.index.isin(grouped_index), :]
@@ -237,8 +243,8 @@ def import_grouped_data(location: str,
             # Fill some NaNs
             t0 = time.time()
             df[interp_cols] = df[interp_cols].interpolate(method='linear', limit=3)
-            df['T_ctrl_C'] = (df['T_ctrl'] - 32)*5/9
-            df['T_out_C'] = (df['T_out'] - 32)*5/9
+            df['T_ctrl_C'] = (df['T_ctrl'] - 32) * 5 / 9
+            df['T_out_C'] = (df['T_out'] - 32) * 5 / 9
 
             # Get Runtime for multistage devices
             t1 = time.time()
@@ -255,24 +261,30 @@ def import_grouped_data(location: str,
             if building_meta_data['ProvinceState'].iloc[0] == 'NY':
                 address = {'city': building_meta_data['City'].iloc[0], 'state': 'New York'}
             else:
-                address = {'city': building_meta_data['City'].iloc[0], 'state': building_meta_data['ProvinceState'].iloc[0]}
+                address = {'city': building_meta_data['City'].iloc[0],
+                           'state': building_meta_data['ProvinceState'].iloc[0]}
             geolocator = Nominatim(user_agent="Your_Name")
             location = geolocator.geocode(address, timeout=60, addressdetails=True)
             try:
-                solar_distances = [geopy.distance.distance((location.latitude, location.longitude), (lat, long)) for lat, long in solar_dfs_loc]
-                weather_distances = [geopy.distance.distance((location.latitude, location.longitude), (lat, long)) for lat, long in wind_df_loc]
+                solar_distances = [geopy.distance.distance((location.latitude, location.longitude), (lat, long)) for
+                                   lat, long in solar_dfs_loc]
+                weather_distances = [geopy.distance.distance((location.latitude, location.longitude), (lat, long)) for
+                                     lat, long in wind_df_loc]
                 df['Lat'] = location.latitude
                 df['Long'] = location.longitude
             except:
-                solar_distances = [0] #default to NYC if no address found
-                weather_distances = [476] #default to NYC if no address found
+                solar_distances = [0]  # default to NYC if no address found
+                weather_distances = [476]  # default to NYC if no address found
                 df['Lat'] = solar_dfs_loc[0]['Latitude']
                 df['Long'] = solar_dfs_loc[0]['Longitude']
 
             solar_df = solar_dfs[np.argmin(solar_distances)].resample('5T').interpolate()
-            wind_df_to_merge = wind_df.loc[(wind_df['latitude'] == wind_df_loc[np.argmin(weather_distances)][0]) & (wind_df['longitude'] == wind_df_loc[np.argmin(weather_distances)][1])].resample('5T').interpolate()
+            wind_df_to_merge = wind_df.loc[(wind_df['latitude'] == wind_df_loc[np.argmin(weather_distances)][0]) & (
+                        wind_df['longitude'] == wind_df_loc[np.argmin(weather_distances)][1])].resample(
+                '5T').interpolate()
 
-            df = pd.merge(df, solar_df[['DHI', 'DNI', 'GHI_(kW/m2)','Wind Speed', 'Temperature']], left_index=True, right_index=True)
+            df = pd.merge(df, solar_df[['DHI', 'DNI', 'GHI_(kW/m2)', 'Wind Speed', 'Temperature']], left_index=True,
+                          right_index=True)
             df = pd.merge(df, wind_df_to_merge[['100m_Wind_Speed_(m/s)']], left_index=True, right_index=True)
 
             df['Nearest_Lat'] = solar_dfs_loc[np.argmin(solar_distances)]['Latitude'].astype(np.float16)
@@ -283,7 +295,7 @@ def import_grouped_data(location: str,
             # Get floor area, parse bad data
             floor_area = building_meta_data['Floor Area [ft2]'].iloc[0]
             if floor_area == 0:
-                floor_area = 2000 # Median floor area
+                floor_area = 2000  # Median floor area
             if building_meta_data['Floor Area [ft2]'].iloc[0] in ['row house',
                                                                   'rowhouse',
                                                                   'townhouse',
@@ -318,15 +330,16 @@ def import_grouped_data(location: str,
             df = import_data(i, file, reduce_size)
             df_list.append(df)
 
-
     return df_list
 
-def import_load_data(year, location): #TODO
+
+def import_load_data(year, location):  # TODO
     DATA_DIR = f'{pathlib.Path(__file__).parents[2]}/Data Files'
     df_list = []
     for file in os.listdir(f'{DATA_DIR}/NYISO Load'):
         if file[0] == 'O':
-            df = pd.read_csv(f'{DATA_DIR}/NYISO Load/{file}', index_col=0, parse_dates=True).drop(columns=['Zone PTID', 'Zone Name'])
+            df = pd.read_csv(f'{DATA_DIR}/NYISO Load/{file}', index_col=0, parse_dates=True).drop(
+                columns=['Zone PTID', 'Zone Name'])
             df = df.resample('5T').mean()
             df_list.append(df)
     df_tot = pd.concat(df_list).groupby(by=['RTD End Time Stamp']).sum()
@@ -334,21 +347,25 @@ def import_load_data(year, location): #TODO
 
     return df_tot
 
+
 def main(location, data_dir, reduce_size, season, hp_only):
     size = 'small' if reduce_size else 'large'
     # Heat Pump Only
     if hp_only:
-        df_list_hp = import_grouped_data(location, max_files=10000, hp_only=True, parallel=True, season=season, reduce_size=reduce_size)
+        df_list_hp = import_grouped_data(location, max_files=10000, hp_only=True, parallel=True, season=season,
+                                         reduce_size=reduce_size)
         df_list_hp = [x for x in df_list_hp if x is not None]
         pickle.dump(df_list_hp, open(f'{DATA_DIR}/df_Lists/df_list_hp_{location}_{size}_{season}.sav', 'wb'))
         df_list_hp = pickle.load(open(f'{DATA_DIR}/df_Lists/df_list_hp_{location}_{size}_{season}.sav', 'rb'))
         grouped_df_hp = process.group_dfs(df_list_hp, size)
         pickle.dump(grouped_df_hp, open(f'{DATA_DIR}/df_Lists/grouped_df_hp_{location}_{size}_{season}.sav', 'wb'))
         grouped_loc_df_hp = process.group_dfs_by_location(df_list_hp, size)
-        pickle.dump(grouped_loc_df_hp, open(f'{DATA_DIR}/df_Lists/grouped_loc_df_hp_{location}_{size}_{season}.sav', 'wb'))
+        pickle.dump(grouped_loc_df_hp,
+                    open(f'{DATA_DIR}/df_Lists/grouped_loc_df_hp_{location}_{size}_{season}.sav', 'wb'))
     else:
         # Gas Only
-        df_list_gas = import_grouped_data(location, max_files=10000, hp_only=False, parallel=False, reduce_size=reduce_size)
+        df_list_gas = import_grouped_data(location, max_files=10000, hp_only=False, parallel=False,
+                                          reduce_size=reduce_size)
         df_list_gas = [x for x in df_list_gas if x is not None]
         pickle.dump(df_list_gas, open(f'{DATA_DIR}/df_Lists/df_list_gas_{location}_{size}.sav', 'wb'))
         df_list_gas = pickle.load(open(f'{DATA_DIR}/df_Lists/df_list_gas_{location}_{size}.sav', 'rb'))
@@ -357,10 +374,11 @@ def main(location, data_dir, reduce_size, season, hp_only):
         grouped_loc_df_gas = process.group_dfs_by_location(df_list_gas, size)
         pickle.dump(grouped_loc_df_gas, open(f'{DATA_DIR}/df_Lists/grouped_loc_df_gas_{location}_{size}.sav', 'wb'))
 
+
 if __name__ == '__main__':
     location = 'NY'
     data_dir = f'{pathlib.Path(os.path.abspath("")).parents[1]}/data'
     reduce_size = True
-    season='winter'
+    season = 'winter'
     hp_only = False
     main(location, data_dir, reduce_size, season, hp_only)
