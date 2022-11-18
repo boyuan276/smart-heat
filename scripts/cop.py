@@ -10,8 +10,8 @@ def cop_parameters():
 def calc_cop(indoor_temp, outdoor_temp, HSPF='When2heat'):
     '''
     Used for calculating cop as a function of indoor and outdoor temperatures.
-    :param indoor_temp: Indoor temperature in Celcius
-    :param outdoor_temp: Outdoor Temperature in Celcius
+    :param indoor_temp: Indoor temperature in Celsius
+    :param outdoor_temp: Outdoor Temperature in Celsius
     :param HSPF: Rating to calculate COP for in [9, 10, 14, "When2heat"]
     :return:
     '''
