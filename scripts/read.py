@@ -83,7 +83,7 @@ def get_solar_dfs(location, index):
                 datetime.datetime(year=df['Year'][i], month=df['Month'][i], day=df['Day'][i], hour=df['Hour'][i],
                                   minute=df['Minute'][i]))
         df['timestamp'] = pd.to_datetime(timestamp)
-        df.index = df['timestamp']
+        df = df.set_index('timestamp')
         df = df.iloc[:, 5:].resample('5T').interpolate()
         df['GHI'] = df['GHI'] / 1000
         df = df.rename(
@@ -104,8 +104,21 @@ def get_wind_dfs(location, index):
     :param index:  a pandas datetime index representing the timesteps desired
     :return:
     """
-    wind_df = pd.read_csv(f'{DATA_DIR}/Weather/{location}/wind_speed.csv', index_col=0, parse_dates=True)
+    wind_df = pd.read_csv(f'{DATA_DIR}/Weather/{location}/wind_speed.csv',
+                            index_col='time', parse_dates=['time'])
     wind_df = wind_df.loc[wind_df.index.isin(index), :]
+
+    # Rename ('lat', 'lon') to ('latitude', 'longitude') if necessary
+    if 'lat' in wind_df.columns:
+        wind_df = wind_df.rename(columns={
+            'lat': 'latitude',
+            'lon': 'longitude'
+        })
+    
+    if 'wspd_100m' in wind_df.columns:
+        wind_df = wind_df.rename(columns={
+            'wspd_100m': '100m_Wind_Speed_(m/s)'
+        })
 
     wind_df_loc = [wind_df.loc[:, ['latitude', 'longitude']].iloc[i] for i in
                    range(len(wind_df.loc[:, ['latitude', 'longitude']].drop_duplicates()))]
@@ -113,17 +126,17 @@ def get_wind_dfs(location, index):
     return wind_df_loc, wind_df
 
 
-def create_wind_data(path_to_grib, location):
-    """
-    Creates a timeseries csv from the ERA5 grib files for 100m wind speed.
-    :param path_to_grib:
-    :param location: Location directory to save the wind_speed csv
-    :return:
-    """
-    wind_ds = xr.load_dataset(path_to_grib, engine='cfgrib')
-    wind_df = wind_ds.to_dataframe()
-    wind_df['100m_Wind_Speed_(m/s)'] = (wind_df['u100'] ** 2 + wind_df['v100'] ** 2) ** .5
-    wind_df.to_csv(f'{DATA_DIR}/Weather/{location}/wind_speed.csv')
+# def create_wind_data(path_to_grib, location):
+#     """
+#     Creates a timeseries csv from the ERA5 grib files for 100m wind speed.
+#     :param path_to_grib:
+#     :param location: Location directory to save the wind_speed csv
+#     :return:
+#     """
+#     wind_ds = xr.load_dataset(path_to_grib, engine='cfgrib')
+#     wind_df = wind_ds.to_dataframe()
+#     wind_df['100m_Wind_Speed_(m/s)'] = (wind_df['u100'] ** 2 + wind_df['v100'] ** 2) ** .5
+#     wind_df.to_csv(f'{DATA_DIR}/Weather/{location}/wind_speed.csv')
 
 
 def import_grouped_data(location: str,
@@ -311,9 +324,9 @@ def import_grouped_data(location: str,
                 df = df[['HvacMode', 'Event', 'Schedule', 'T_stp_cool', 'T_stp_heat',
                          'Humidity', 'RH_out',
                          'T_ctrl_C', 'T_out_C',
-                         # 'GHI_(kW/m2)', 'Wind Speed', '100m_Wind_Speed_(m/s)',
+                         'GHI_(kW/m2)', 'Wind Speed', '100m_Wind_Speed_(m/s)',
                          'effectiveHeat', 'effectiveElectricPower', 'fan',
-                         # 'Nearest_Lat'
+                         'Nearest_Lat'
                          ]]
 
             return df
@@ -380,5 +393,5 @@ if __name__ == '__main__':
     data_dir = f'{pathlib.Path(os.path.abspath("")).parents[1]}/data'
     reduce_size = True
     season = 'winter'
-    hp_only = False
+    hp_only = True
     main(location, data_dir, reduce_size, season, hp_only)
