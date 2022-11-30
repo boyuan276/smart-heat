@@ -3,7 +3,7 @@ import pandas as pd
 import urllib.parse
 import time
 
-API_KEY = "{{YOUR_API_KEY}}"
+API_KEY = "JV989Mnt2HKwW8zA1GjTGcTxji21SiTxhKeeeNF0"
 EMAIL = "by276@cornell.edu"
 BASE_URL = "https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-5min-download.json?"
 POINTS = [
