@@ -5,3 +5,4 @@ __pycache__
 pickled_data
 heat_loads
 data/*
+env/
