@@ -193,6 +193,7 @@ def import_grouped_data(location: str,
     # Columns containing numbers to interpolate
     interp_cols = ['T_stp_cool', 'T_stp_heat', 'Humidity',
                    'auxHeat1', 'auxHeat2', 'auxHeat3',
+                   'compCool1', 'compCool2',
                    'compHeat1', 'compHeat2', 'fan',
                    'Thermostat_Temperature', 'T_out', 'RH_out']
 
@@ -225,6 +226,7 @@ def import_grouped_data(location: str,
         df = pd.read_csv(file, parse_dates=['DateTime'], usecols=['DateTime', 'HvacMode', 'Event', 'Schedule', 'T_ctrl',
                                                                   'T_stp_cool', 'T_stp_heat', 'Humidity',
                                                                   'auxHeat1', 'auxHeat2', 'auxHeat3',
+                                                                  'compCool1', 'compCool2',
                                                                   'compHeat1', 'compHeat2', 'fan',
                                                                   'Thermostat_Temperature', 'T_out', 'RH_out',
                                                                   ],
@@ -232,6 +234,7 @@ def import_grouped_data(location: str,
                                 'T_ctr': np.float32,
                                 'T_stp_cool': np.float32, 'T_stp_heat': np.float32, 'Humidity': np.float32,
                                 'auxHeat1': np.float32, 'auxHeat2': np.float32, 'auxHeat3': np.float32,
+                                'compCool1': np.float32, 'compCool2': np.float32,
                                 'compHeat1': np.float32, 'compHeat2': np.float32, 'fan': np.float32,
                                 'Thermostat_Temperature': np.float32, 'T_out': np.float32, 'RH_out': np.float32,
                                 }
@@ -243,20 +246,41 @@ def import_grouped_data(location: str,
         start_t = time.time()
 
         # Only read in heat pump data if hp_only is true
-        if hp_only:
-            if (df['compHeat2'] > 0).any():
-                READ_IN = True
-            elif (df['compHeat1'] > 0).any():
-                READ_IN = True
+        # compCool1,2,3: Runtime (seconds) for any cooling 
+        # (where 1,2,3 are the stages of the equipment)
+        # compHeat1,2,3: Runtime (seconds) for heat-pumps used in heating.
+        if season == 'winter':
+            if hp_only:
+                if (df['compHeat2'] > 0).any():
+                    READ_IN = True
+                elif (df['compHeat1'] > 0).any():
+                    READ_IN = True
+                else:
+                    READ_IN = False
             else:
-                READ_IN = False
+                if (df['compHeat2'] > 0).any():
+                    READ_IN = False
+                elif (df['compHeat1'] > 0).any():
+                    READ_IN = False
+                else:
+                    READ_IN = True
+        elif season == 'summer':
+            if hp_only:
+                if (df['compCool2'] > 0).any():
+                    READ_IN = True
+                elif (df['compCool1'] > 0).any():
+                    READ_IN = True
+                else:
+                    READ_IN = False
+            else:
+                if (df['compCool2'] > 0).any():
+                    READ_IN = False
+                elif (df['compCool1'] > 0).any():
+                    READ_IN = False
+                else:
+                    READ_IN = True
         else:
-            if (df['compHeat2'] > 0).any():
-                READ_IN = False
-            elif (df['compHeat1'] > 0).any():
-                READ_IN = False
-            else:
-                READ_IN = True
+            raise ValueError(f'Wrong season: {season}!')
         # print(f'check if hp only: {time.time() - start_t:.2f} s')
 
         # Do not read in data if it is empty
@@ -273,7 +297,7 @@ def import_grouped_data(location: str,
 
             # Get Runtime for multistage devices
             t1 = time.time()
-            df = process.get_effective_runtime(df)
+            df = process.get_effective_runtime(df, season)
             # print(f'effective runtime: {time.time() - t1:.2f} s')
 
             # Estimate Effective Power Consumption
@@ -335,13 +359,15 @@ def import_grouped_data(location: str,
             df.index.rename('DateTime', inplace=True)
 
             if reduce_size:
-                df = df[['HvacMode', 'Event', 'Schedule', 'T_stp_cool', 'T_stp_heat',
-                         'Humidity', 'RH_out',
-                         'T_ctrl_C', 'T_out_C',
-                         'GHI_(kW/m2)', 'Wind Speed', '100m_Wind_Speed_(m/s)',
-                         'effectiveHeat', 'effectiveElectricPower', 'fan',
-                         'Nearest_Lat'
-                         ]]
+                columns = [
+                    'HvacMode', 'Event', 'Schedule', 'T_stp_cool', 'T_stp_heat',
+                    'Humidity', 'RH_out', 'T_ctrl_C', 'T_out_C',
+                    'GHI_(kW/m2)', 'Wind Speed', '100m_Wind_Speed_(m/s)',
+                    'effectiveHeat', 'effectiveCool',
+                    'effectiveElectricPower', 'fan', 'Nearest_Lat'
+                    ]
+
+                df = df[columns]
 
             return df
 
@@ -395,7 +421,7 @@ def main(location, data_dir, reduce_size, season, hp_only):
         pickle.dump(grouped_loc_df_hp,
                     open(f'{DATA_DIR}/df_lists/grouped_loc_df_hp_{location}_{size}_{season}.sav', 'wb'))
     else:
-        # Gas Only
+        # Gas Only (heating other than heat pumps)
         # Write df lists
         df_list_gas = import_grouped_data(location, max_files=10000, hp_only=False, parallel=False,
                                           reduce_size=reduce_size)
@@ -417,6 +443,6 @@ if __name__ == '__main__':
     # data_dir = f'{pathlib.Path(os.path.abspath("")).parents[1]}/data'
     data_dir = DATA_DIR
     reduce_size = True
-    season = 'winter'
-    hp_only = False
+    season = 'summer'
+    hp_only = True
     main(location, data_dir, reduce_size, season, hp_only)
