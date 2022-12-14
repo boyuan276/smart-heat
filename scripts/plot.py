@@ -105,7 +105,7 @@ def plot_daily_peaks(data_list, label_list, color_list=None):
         axs[1].legend(handles, labels, fontsize=12)
 
         # axs[1].legend(fontsize=12)
-        plt.savefig('plots/daily_peak_distribution.pdf', dpi=300)
+        # plt.savefig('plots/daily_peak_distribution.pdf', dpi=300)
         plt.subplots_adjust(hspace=0)
         plt.tight_layout()
         return f, axs
@@ -430,6 +430,6 @@ def plot_setpoints(grouped_df, day):
         ax1.set_xlabel('Time of Day', fontsize=24)
         ax1.set_ylim((18, 20))
         plt.tight_layout()
-        plt.savefig(f'plots/average_setpoint_{day}.pdf', dpi=300)
+        plt.savefig(f'../plots/average_setpoint_{day}.pdf', dpi=300)
 
     return f, ax1
