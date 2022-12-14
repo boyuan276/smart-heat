@@ -7,7 +7,7 @@ def cop_parameters():
     file = os.path.join(DATA_DIR, 'cop', 'cop_parameters.csv')
     return pd.read_csv(file, sep=',', decimal='.', header=0, index_col=0).apply(pd.to_numeric, downcast='float')
 
-def calc_cop(indoor_temp, outdoor_temp, HSPF='When2heat'):
+def calc_cop(indoor_temp, outdoor_temp, HSPF='When2heat', season='winter'):
     '''
     Used for calculating cop as a function of indoor and outdoor temperatures.
     :param indoor_temp: Indoor temperature in Celsius
@@ -39,7 +39,13 @@ def calc_cop(indoor_temp, outdoor_temp, HSPF='When2heat'):
     else:
         raise(ValueError(f'{HSPF} not a valid HSPF. Possible values are: [9, 10, 14, "Ruhnau"]'))
 
-    delta_t = indoor_temp - outdoor_temp
+    # Calculate temperature difference for heating and cooling
+    if season == 'winter':
+        delta_t = indoor_temp - outdoor_temp
+    elif season == 'summer':
+        delta_t = outdoor_temp - indoor_temp
+    else:
+        raise ValueError(f'Wrong season: {season}!')
 
     cop = sum(params[i] * delta_t ** i for i in range(len(params)))
     if cop <= 1: cop = 1
