@@ -10,7 +10,7 @@ from . import read, cop, process
 
 DATA_DIR = f'{pathlib.Path(os.path.abspath("")).parents[0]}/Data Files'
 
-def import_ecobee_data(location, size, fuel_type, DATA_DIR=None):
+def import_ecobee_data(location, size, fuel_type, season, DATA_DIR=None):
     """
     Function to import all data from precomputed df_lists. Run read.main() to process these and add save them.
     Args:
@@ -25,9 +25,9 @@ def import_ecobee_data(location, size, fuel_type, DATA_DIR=None):
     if DATA_DIR is None:
         DATA_DIR = f'{pathlib.Path(os.path.abspath("")).parents[0]}/data'
     out_dict = {}
-    out_dict['df_list'] = pickle.load(open(f'{DATA_DIR}/df_Lists/df_list_{fuel_type}_{location}_{size}.sav', 'rb'))
-    out_dict['grouped_df'] = pickle.load(open(f'{DATA_DIR}/df_Lists/grouped_df_{fuel_type}_{location}_{size}.sav', 'rb'))
-    out_dict['grouped_df_loc'] = pickle.load(open(f'{DATA_DIR}/df_Lists/grouped_loc_df_{fuel_type}_{location}_{size}.sav', 'rb'))
+    out_dict['df_list'] = pickle.load(open(f'{DATA_DIR}/df_lists/df_list_{fuel_type}_{location}_{size}_{season}.sav', 'rb'))
+    out_dict['grouped_df'] = pickle.load(open(f'{DATA_DIR}/df_lists/grouped_df_{fuel_type}_{location}_{size}_{season}.sav', 'rb'))
+    out_dict['grouped_df_loc'] = pickle.load(open(f'{DATA_DIR}/df_lists/grouped_loc_df_{fuel_type}_{location}_{size}_{season}.sav', 'rb'))
     out_dict['grouped_daily'] = out_dict['grouped_df'].groupby(out_dict['grouped_df'].index.map(lambda t: t.minute + 60*t.hour)).mean()
     out_dict['grouped_daily'].index = pd.date_range(start='01/01/08 00:00', freq='5T', periods=len(out_dict['grouped_daily'].index))
 
