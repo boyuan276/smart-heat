@@ -80,7 +80,7 @@ def get_effective_runtime(df, season):
                 df['countGasRun'] = df['auxHeat1'].notna()
     
     # Summer: calculate effective cooling runtime
-    elif season == 'Summer':
+    elif season == 'summer':
         if (df['compCool2'] > 0).any():
             df['effectiveCompRun'] = df[['compCool1', 'compCool2']].mean(axis=1)
             df['countCompRun'] = df['compCool1'].notna() & df['compCool2'].notna()

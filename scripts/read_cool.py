@@ -302,7 +302,7 @@ def import_grouped_data(location: str,
 
             # Estimate Effective Power Consumption
             t2 = time.time()
-            df = process.get_effective_power(df)
+            df = process.get_effective_power(df, season)
             # print(f'effective power: {time.time() - t2:.2f} s')
             # print(f'Process time: {time.time() - read_t:.2f} s')
 
