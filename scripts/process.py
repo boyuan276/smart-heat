@@ -17,7 +17,7 @@ Module used for processing raw, individual thermostat files into dataframes that
 def get_effective_runtime(df, season):
 
     """
-    Converts multi-stage runtimes into single, effective runtime. We assume equal weighting for each stage's runtime
+    Converts multi-stage runtime into single, effective runtime. We assume equal weighting for each stage's runtime
     (i.e., each stage adds the same amount of power), but this can be converted into a weighted average if the first
     stage adds more power than the second
     :param df:
@@ -124,7 +124,7 @@ def get_effective_power(df, season):
             # Heat pump heating
             # Electric power = heat pump + aux heat
 
-            # Coef. for converting aux heat runtime to heat pump runtime # FIXME
+            # Coeff. for converting aux heat runtime to heat pump runtime # FIXME
             # df['eta'] = cop.calc_cop(21.11, df['Design_Temp_C'][0]) * cop.calc_power(df['Design_Temp_C'][0], HSPF) # Eta calculated based on design temps
             df['eta'] = 1 # constant eta for testing
 
